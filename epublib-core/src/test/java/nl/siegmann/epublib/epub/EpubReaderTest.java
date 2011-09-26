@@ -1,12 +1,20 @@
 package nl.siegmann.epublib.epub;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URL;
 
-import junit.framework.TestCase;
 import nl.siegmann.epublib.domain.Book;
 import nl.siegmann.epublib.domain.Resource;
+import nl.siegmann.epublib.epub.EpubReader;
+import nl.siegmann.epublib.epub.EpubWriter;
 import nl.siegmann.epublib.service.MediatypeService;
+
+import junit.framework.TestCase;
+
 
 public class EpubReaderTest extends TestCase {
 	
@@ -19,7 +27,7 @@ public class EpubReaderTest extends TestCase {
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			(new EpubWriter()).write(book, out);
 			byte[] epubData = out.toByteArray();
-			Book readBook = new EpubReader().readEpub(new ByteArrayInputStream(epubData));
+			Book readBook = new EpubReader().readEpub(getURLFromTempFile(epubData));
 			assertNotNull(readBook.getCoverImage());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -40,7 +48,7 @@ public class EpubReaderTest extends TestCase {
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			(new EpubWriter()).write(book, out);
 			byte[] epubData = out.toByteArray();
-			Book readBook = new EpubReader().readEpub(new ByteArrayInputStream(epubData));
+			Book readBook = new EpubReader().readEpub(getURLFromTempFile(epubData));
 			assertNotNull(readBook.getCoverPage());
 			assertEquals(1, readBook.getSpine().size());
 			assertEquals(1, readBook.getTableOfContents().size());
@@ -62,7 +70,7 @@ public class EpubReaderTest extends TestCase {
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			(new EpubWriter()).write(book, out);
 			byte[] epubData = out.toByteArray();
-			Book readBook = new EpubReader().readEpub(new ByteArrayInputStream(epubData));
+			Book readBook = new EpubReader().readEpub(getURLFromTempFile(epubData));
 			assertNotNull(readBook.getCoverPage());
 			assertEquals(1, readBook.getSpine().size());
 			assertEquals(1, readBook.getTableOfContents().size());
@@ -74,5 +82,15 @@ public class EpubReaderTest extends TestCase {
 			e.printStackTrace();
 			assertTrue(false);
 		}
+	}
+	
+	private URL getURLFromTempFile(byte[] epubData) throws IOException {
+		final File tempFile = File.createTempFile("test", ".txt");
+		final OutputStream fileOutputStream = new FileOutputStream(tempFile);
+
+		fileOutputStream.write(epubData);
+		fileOutputStream.close();
+		
+		return tempFile.toURI().toURL();
 	}
 }

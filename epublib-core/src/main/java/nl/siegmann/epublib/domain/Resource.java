@@ -5,12 +5,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.Serializable;
+import java.net.URL;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import nl.siegmann.epublib.Constants;
 import nl.siegmann.epublib.service.MediatypeService;
 import nl.siegmann.epublib.util.IOUtil;
 import nl.siegmann.epublib.util.StringUtil;
 import nl.siegmann.epublib.util.commons.io.XmlStreamReader;
+
 
 /**
  * Represents a resource that is part of the epub.
@@ -31,6 +35,8 @@ public class Resource implements Serializable {
 	private MediaType mediaType;
 	private String inputEncoding = Constants.ENCODING;
 	private byte[] data;
+	private URL url;
+	private String entryName;
 	
 	/**
 	 * Creates an empty Resource with the given href.
@@ -134,6 +140,15 @@ public class Resource implements Serializable {
 		this.data = data;
 	}
 	
+	public Resource(URL url, String name) {
+		this.id = null;
+		this.url = url;
+		this.entryName = name;
+		this.href = name;
+		this.mediaType = MediatypeService.determineMediaType(href);
+		this.inputEncoding = Constants.ENCODING;
+	}
+
 	/**
 	 * Gets the contents of the Resource as an InputStream.
 	 * 
@@ -142,16 +157,40 @@ public class Resource implements Serializable {
 	 * @throws IOException
 	 */
 	public InputStream getInputStream() throws IOException {
-		return new ByteArrayInputStream(data);
+		if (url != null) {
+			return getInputStreamForZipEntry();
+		}
+		
+		return new ByteArrayInputStream(getData());
 	}
 
 	/**
 	 * The contents of the resource as a byte[]
 	 * 
 	 * @return The contents of the resource
+	 * @throws IOException 
 	 */
-	public byte[] getData() {
+	public byte[] getData() throws IOException {
+		if (url != null) {
+			return IOUtil.toByteArray(getInputStreamForZipEntry());
+		}
+		
 		return data;
+	}
+
+	private InputStream getInputStreamForZipEntry() throws IOException {
+		ZipInputStream zip = new ZipInputStream(url.openStream());
+
+		ZipEntry entry;
+		while ((entry = zip.getNextEntry()) != null) {
+			if (entry.getName().equals(entryName)) {
+				return zip;
+			}
+		}
+		
+		zip.close();
+		
+		return null;
 	}
 
 	/**
@@ -205,6 +244,14 @@ public class Resource implements Serializable {
 		return href;
 	}
 
+	public URL getUrl() {
+		return url;
+	}
+
+	public String getEntryName() {
+		return entryName;
+	}
+
 	/**
 	 * Sets the Resource's href.
 	 * 
@@ -243,7 +290,7 @@ public class Resource implements Serializable {
 	 * @throws IOException
 	 */
 	public Reader getReader() throws IOException {
-		return new XmlStreamReader(new ByteArrayInputStream(data), inputEncoding);
+		return new XmlStreamReader(new ByteArrayInputStream(getData()), inputEncoding);
 	}
 	
 	/**

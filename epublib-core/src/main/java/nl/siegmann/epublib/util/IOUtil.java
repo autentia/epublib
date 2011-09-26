@@ -8,12 +8,17 @@ import java.io.Reader;
 import java.io.StringWriter;
 import java.io.Writer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Most of the functions herein are re-implementations of the ones in apache io IOUtils.
  * The reason for re-implementing this is that the functions are fairly simple and using my own implementation saves the inclusion of a 200Kb jar file.
  */
 public class IOUtil {
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(IOUtil.class);
+	
 	public static final int IO_COPY_BUFFER_SIZE = 1024 * 4;
 
 	/**
@@ -42,7 +47,10 @@ public class IOUtil {
 		ByteArrayOutputStream result = new ByteArrayOutputStream();
 		copy(in, result);
 		result.flush();
-		return result.toByteArray();
+		byte[] bytes = result.toByteArray();
+		result.close();
+		
+		return bytes;
 	}
 
 	/**
@@ -79,7 +87,15 @@ public class IOUtil {
 			out.write(buffer, 0, readSize);
 			result = calcNewNrReadSize(readSize, result); 
 		}
-		out.flush();
+
+//		out.close();
+
+		try {
+			in.close();
+		} catch (IOException e) {
+			LOGGER.debug("Error closing stream", e);
+		}
+		
 		return result;
 	}
 

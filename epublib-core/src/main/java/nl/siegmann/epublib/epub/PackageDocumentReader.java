@@ -14,6 +14,7 @@ import java.util.Set;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+
 import nl.siegmann.epublib.Constants;
 import nl.siegmann.epublib.domain.Book;
 import nl.siegmann.epublib.domain.Guide;
@@ -23,6 +24,11 @@ import nl.siegmann.epublib.domain.Resource;
 import nl.siegmann.epublib.domain.Resources;
 import nl.siegmann.epublib.domain.Spine;
 import nl.siegmann.epublib.domain.SpineReference;
+import nl.siegmann.epublib.epub.DOMUtil;
+import nl.siegmann.epublib.epub.EpubReader;
+import nl.siegmann.epublib.epub.PackageDocumentBase;
+import nl.siegmann.epublib.epub.PackageDocumentMetadataReader;
+import nl.siegmann.epublib.epub.PackageDocumentReader;
 import nl.siegmann.epublib.service.MediatypeService;
 import nl.siegmann.epublib.util.ResourceUtil;
 import nl.siegmann.epublib.util.StringUtil;
@@ -33,6 +39,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
 
 /**
  * Reads the opf package document as defined by namespace http://www.idpf.org/2007/opf
@@ -46,16 +53,16 @@ public class PackageDocumentReader extends PackageDocumentBase {
 	private static final String[] POSSIBLE_NCX_ITEM_IDS = new String[] {"toc", "ncx"};
 	
 	
-	public static void read(Resource packageResource, EpubReader epubReader, Book book, Resources resources) throws UnsupportedEncodingException, SAXException, IOException, ParserConfigurationException {
+	public static void read(Resource packageResource, EpubReader epubReader, Book book, Map<String, Resource> resourcesByHref) throws UnsupportedEncodingException, SAXException, IOException, ParserConfigurationException {
 		Document packageDocument = ResourceUtil.getAsDocument(packageResource);
 		String packageHref = packageResource.getHref();
-		resources = fixHrefs(packageHref, resources);
-		readGuide(packageDocument, epubReader, book, resources);
+		resourcesByHref = fixHrefs(packageHref, resourcesByHref);
+		readGuide(packageDocument, epubReader, book, resourcesByHref);
 		
 		// Books sometimes use non-identifier ids. We map these here to legal ones
 		Map<String, String> idMapping = new HashMap<String, String>();
 		
-		resources = readManifest(packageDocument, packageHref, epubReader, resources, idMapping);
+		Resources resources = readManifest(packageDocument, packageHref, epubReader, resourcesByHref, idMapping);
 		book.setResources(resources);
 		readCover(packageDocument, book);
 		book.setMetadata(PackageDocumentMetadataReader.readMetadata(packageDocument, book.getResources()));
@@ -78,7 +85,7 @@ public class PackageDocumentReader extends PackageDocumentBase {
 	 * @return a Map with resources, with their id's as key.
 	 */
 	private static Resources readManifest(Document packageDocument, String packageHref,
-			EpubReader epubReader, Resources resources, Map<String, String> idMapping) {
+			EpubReader epubReader, Map<String, Resource> resourcesByHref, Map<String, String> idMapping) {
 		Element manifestElement = DOMUtil.getFirstElementByTagNameNS(packageDocument.getDocumentElement(), NAMESPACE_OPF, OPFTags.manifest);
 		Resources result = new Resources();
 		if(manifestElement == null) {
@@ -96,7 +103,7 @@ public class PackageDocumentReader extends PackageDocumentBase {
 				log.error(e.getMessage());
 			}
 			String mediaTypeName = DOMUtil.getAttribute(itemElement, NAMESPACE_OPF, OPFAttributes.media_type);
-			Resource resource = resources.remove(href);
+			Resource resource = resourcesByHref.remove(href);
 			if(resource == null) {
 				log.error("resource with href '" + href + "' not found");
 				continue;
@@ -122,10 +129,10 @@ public class PackageDocumentReader extends PackageDocumentBase {
 	 * @param packageDocument
 	 * @param epubReader
 	 * @param book
-	 * @param resources
+	 * @param resourcesByHref
 	 */
 	private static void readGuide(Document packageDocument,
-			EpubReader epubReader, Book book, Resources resources) {
+			EpubReader epubReader, Book book, Map<String, Resource> resourcesByHref) {
 		Element guideElement = DOMUtil.getFirstElementByTagNameNS(packageDocument.getDocumentElement(), NAMESPACE_OPF, OPFTags.guide);
 		if(guideElement == null) {
 			return;
@@ -138,7 +145,7 @@ public class PackageDocumentReader extends PackageDocumentBase {
 			if (StringUtil.isBlank(resourceHref)) {
 				continue;
 			}
-			Resource resource = resources.getByHref(StringUtil.substringBefore(resourceHref, Constants.FRAGMENT_SEPARATOR_CHAR));
+			Resource resource = resourcesByHref.get(StringUtil.substringBefore(resourceHref, Constants.FRAGMENT_SEPARATOR_CHAR));
 			if (resource == null) {
 				log.error("Guide is referencing resource with href " + resourceHref + " which could not be found");
 				continue;
@@ -168,19 +175,19 @@ public class PackageDocumentReader extends PackageDocumentBase {
 	 * @param resourcesByHref
 	 * @return
 	 */
-	private static Resources fixHrefs(String packageHref,
-			Resources resourcesByHref) {
+	private static Map<String, Resource> fixHrefs(String packageHref,
+			Map<String, Resource> resourcesByHref) {
 		int lastSlashPos = packageHref.lastIndexOf('/');
 		if(lastSlashPos < 0) {
 			return resourcesByHref;
 		}
-		Resources result = new Resources();
-		for(Resource resource: resourcesByHref.getAll()) {
+		Map<String, Resource> result = new HashMap<String, Resource>();
+		for(Resource resource: resourcesByHref.values()) {
 			if(StringUtil.isNotBlank(resource.getHref())
 					|| resource.getHref().length() > lastSlashPos) {
 				resource.setHref(resource.getHref().substring(lastSlashPos + 1));
 			}
-			result.add(resource);
+			result.put(resource.getHref(), resource);
 		}
 		return result;
 	}

@@ -9,14 +9,24 @@ import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import javax.xml.stream.FactoryConfigurationError;
+import javax.xml.stream.XMLStreamException;
+
+
 import nl.siegmann.epublib.domain.Book;
 import nl.siegmann.epublib.domain.Resource;
+import nl.siegmann.epublib.epub.BookProcessor;
+import nl.siegmann.epublib.epub.EpubProcessorSupport;
+import nl.siegmann.epublib.epub.EpubWriter;
+import nl.siegmann.epublib.epub.NCXDocument;
+import nl.siegmann.epublib.epub.PackageDocumentWriter;
 import nl.siegmann.epublib.service.MediatypeService;
 import nl.siegmann.epublib.util.IOUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xmlpull.v1.XmlSerializer;
+
 
 /**
  * Generates an epub file. Not thread-safe, single use object.
@@ -43,7 +53,7 @@ public class EpubWriter {
 	}
 
 
-	public void write(Book book, OutputStream out) throws IOException {
+	public void write(Book book, OutputStream out) throws IOException, XMLStreamException, FactoryConfigurationError {
 		book = processBook(book);
 		ZipOutputStream resultStream = new ZipOutputStream(out);
 		writeMimeType(resultStream);
@@ -61,7 +71,7 @@ public class EpubWriter {
 		return book;
 	}
 
-	private void initTOCResource(Book book) {
+	private void initTOCResource(Book book) throws XMLStreamException, FactoryConfigurationError {
 		Resource tocResource;
 		try {
 			tocResource = NCXDocument.createNCXResource(book);
@@ -106,7 +116,7 @@ public class EpubWriter {
 	}
 	
 
-	private void writePackageDocument(Book book, ZipOutputStream resultStream) throws IOException {
+	private void writePackageDocument(Book book, ZipOutputStream resultStream) throws XMLStreamException, IOException {
 		resultStream.putNextEntry(new ZipEntry("OEBPS/content.opf"));
 		XmlSerializer xmlSerializer = EpubProcessorSupport.createXmlSerializer(resultStream);
 		PackageDocumentWriter.write(this, xmlSerializer, book);

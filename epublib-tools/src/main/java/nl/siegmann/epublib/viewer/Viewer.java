@@ -12,6 +12,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Collections;
 
 import javax.swing.JFileChooser;
@@ -38,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+
 public class Viewer {
 	
 	private static final long serialVersionUID = 1610691708767665447L;
@@ -52,11 +55,11 @@ public class Viewer {
 	NavigationHistory browserHistory;
 	private BookProcessorPipeline epubCleaner = new BookProcessorPipeline(Collections.<BookProcessor>emptyList());
 	
-	public Viewer(InputStream bookStream) {
+	public Viewer(URL url, InputStream bookStream) {
 		mainWindow = createMainWindow();
 		Book book;
 		try {
-			book = (new EpubReader()).readEpub(bookStream);
+			book = (new EpubReader()).readEpub(url);
 			gotoBook(book);
 		} catch (IOException e) {
 			log.error(e.getMessage(), e);
@@ -160,7 +163,7 @@ public class Viewer {
 					previousDir = selectedFile.getParentFile();
 				}
 				try {
-					Book book = (new EpubReader()).readEpub(new FileInputStream(selectedFile));
+					Book book = (new EpubReader()).readEpub(selectedFile.toURI().toURL());
 					gotoBook(book);
 				} catch (Exception e1) {
 					log.error(e1.getMessage(), e1);
@@ -331,14 +334,22 @@ public class Viewer {
 		}
 
 		final InputStream bookStream = getBookInputStream(args);
-//		final Book book = readBook(args);
+		final URL url = getURL(args);
 		
 		// Schedule a job for the event dispatch thread:
 		// creating and showing this application's GUI.
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				new Viewer(bookStream);
+				new Viewer(url, bookStream);
 			}
 		});
+	}
+
+	private static URL getURL(String[] args) throws MalformedURLException {
+		if (args.length > 1) {
+			return new URL(args[1]);
+		}
+		
+		return null;
 	}
 }

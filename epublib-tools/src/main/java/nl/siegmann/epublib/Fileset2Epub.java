@@ -2,9 +2,11 @@ package nl.siegmann.epublib;
 
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import nl.siegmann.epublib.Constants;
 import nl.siegmann.epublib.bookprocessor.CoverpageBookProcessor;
 import nl.siegmann.epublib.bookprocessor.DefaultBookProcessorPipeline;
 import nl.siegmann.epublib.bookprocessor.XslBookProcessor;
@@ -13,7 +15,6 @@ import nl.siegmann.epublib.domain.Author;
 import nl.siegmann.epublib.domain.Book;
 import nl.siegmann.epublib.domain.Identifier;
 import nl.siegmann.epublib.domain.Resource;
-import nl.siegmann.epublib.epub.BookProcessor;
 import nl.siegmann.epublib.epub.BookProcessorPipeline;
 import nl.siegmann.epublib.epub.EpubReader;
 import nl.siegmann.epublib.epub.EpubWriter;
@@ -23,6 +24,7 @@ import nl.siegmann.epublib.util.VFSUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.vfs.FileSystemException;
 import org.apache.commons.vfs.VFS;
+
 
 public class Fileset2Epub {
 
@@ -36,8 +38,8 @@ public class Fileset2Epub {
 		String type = "";
 		String isbn = "";
 		String inputEncoding = Constants.ENCODING;
-		List<String> bookProcessorClassNames = new ArrayList<String>();
-		
+		URL url = null;
+
 		for(int i = 0; i < args.length; i++) {
 			if(args[i].equalsIgnoreCase("--in")) {
 				inputLocation = args[++i];
@@ -47,8 +49,6 @@ public class Fileset2Epub {
 				inputEncoding = args[++i];
 			} else if(args[i].equalsIgnoreCase("--xsl")) {
 				xslFile = args[++i];
-			} else if(args[i].equalsIgnoreCase("--book-processor-class")) {
-				bookProcessorClassNames.add(args[++i]);
 			} else if(args[i].equalsIgnoreCase("--cover-image")) {
 				coverImage = args[++i];
 			} else if(args[i].equalsIgnoreCase("--author")) {
@@ -59,13 +59,14 @@ public class Fileset2Epub {
 				isbn = args[++i];
 			} else if(args[i].equalsIgnoreCase("--type")) {
 				type = args[++i];
+			} else if(args[i].equalsIgnoreCase("--url")) {
+				url = new URL(args[++i]);
 			}
 		}
 		if(StringUtils.isBlank(inputLocation) || StringUtils.isBlank(outLocation)) {
 			usage();
 		}
 		BookProcessorPipeline epubCleaner = new DefaultBookProcessorPipeline();
-		epubCleaner.addBookProcessors(createBookProcessors(bookProcessorClassNames));
 		EpubWriter epubWriter = new EpubWriter(epubCleaner);
 		if(! StringUtils.isBlank(xslFile)) {
 			epubCleaner.addBookProcessor(new XslBookProcessor(xslFile));
@@ -79,7 +80,7 @@ public class Fileset2Epub {
 		if("chm".equals(type)) {
 			book = ChmParser.parseChm(VFSUtil.resolveFileObject(inputLocation), inputEncoding);
 		} else if ("epub".equals(type)) {
-			book = new EpubReader().readEpub(VFSUtil.resolveInputStream(inputLocation), inputEncoding);
+			book = new EpubReader().readEpub(url, inputEncoding);
 		} else {
 			book = FilesetBookCreator.createBookFromDirectory(VFSUtil.resolveFileObject(inputLocation), inputEncoding);
 		}
@@ -129,20 +130,6 @@ public class Fileset2Epub {
 		book.getMetadata().setAuthors(authorObjects);
 	}
 
-
-	private static List<BookProcessor> createBookProcessors(List<String> bookProcessorNames) {
-		List<BookProcessor> result = new ArrayList<BookProcessor>(bookProcessorNames.size());
-		for (String bookProcessorName: bookProcessorNames) {
-			BookProcessor bookProcessor = null;
-			try {
-				bookProcessor = (BookProcessor) Class.forName(bookProcessorName).newInstance();
-				result.add(bookProcessor);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		return result;
-	}
 	
 	private static void usage() {
 		System.out.println("usage: " + Fileset2Epub.class.getName() 

@@ -1,6 +1,7 @@
 package nl.siegmann.epublib.epub;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.HashMap;
@@ -118,20 +119,44 @@ public class EpubReader {
 
 	private Map<String, Resource> readResources(URL url, String defaultHtmlEncoding) throws IOException {
 		Map<String, Resource> result = new HashMap<String, Resource>();
-		ZipInputStream in = new ZipInputStream(url.openStream());
+		
+		InputStream inFile = null;
+		
+			try {
+				inFile = url.openStream();
+				ZipInputStream in = new ZipInputStream(inFile);
 
-		for (ZipEntry zipEntry = in.getNextEntry(); zipEntry != null; zipEntry = in.getNextEntry()) {
-			if (!zipEntry.isDirectory()) {
-				Resource resource = new Resource(url, zipEntry.getName());
-
-				if (resource.getMediaType() == MediatypeService.XHTML) {
-					resource.setInputEncoding(defaultHtmlEncoding);
+			for (ZipEntry zipEntry = in.getNextEntry(); zipEntry != null; zipEntry = in.getNextEntry()) {
+				if (!zipEntry.isDirectory()) {
+					Resource resource = new Resource(url, zipEntry.getName());
+	
+					if (resource.getMediaType() == MediatypeService.XHTML) {
+						resource.setInputEncoding(defaultHtmlEncoding);
+					}
+	
+					result.put(resource.getHref(), resource);
 				}
-
-				result.put(resource.getHref(), resource);
 			}
-		}
+			} finally {
+				EpubReader.closeAnInputStream(inFile);
+			}
 
 		return result;
 	}
+	
+	
+
+	public static void closeAnInputStream(InputStream stream) {
+		try {
+			if(stream!=null && stream instanceof net.lingala.zip4j.io.ZipInputStream) {
+				net.lingala.zip4j.io.ZipInputStream inZipFile = (net.lingala.zip4j.io.ZipInputStream)stream;
+				inZipFile.close(true);
+			} else {
+				 stream.close();
+			}
+		} catch (Exception e) {
+			log.error("Error closing a zip Input Stream",e);
+		}
+	}
+	
 }

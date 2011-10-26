@@ -90,11 +90,6 @@ public class IOUtil {
 
 //		out.close();
 
-		try {
-			in.close();
-		} catch (IOException e) {
-			LOGGER.debug("Error closing stream", e);
-		}
 		
 		return result;
 	}

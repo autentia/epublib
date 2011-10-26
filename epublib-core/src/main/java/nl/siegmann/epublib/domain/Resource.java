@@ -10,21 +10,21 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import nl.siegmann.epublib.Constants;
+import nl.siegmann.epublib.epub.EpubReader;
 import nl.siegmann.epublib.service.MediatypeService;
 import nl.siegmann.epublib.util.IOUtil;
 import nl.siegmann.epublib.util.StringUtil;
 import nl.siegmann.epublib.util.commons.io.XmlStreamReader;
 
-
 /**
- * Represents a resource that is part of the epub.
- * A resource can be a html file, image, xml, etc.
+ * Represents a resource that is part of the epub. A resource can be a html
+ * file, image, xml, etc.
  * 
  * @author paul
- *
+ * 
  */
 public class Resource implements Serializable {
-	
+
 	/**
 	 * 
 	 */
@@ -37,109 +37,156 @@ public class Resource implements Serializable {
 	private byte[] data;
 	private URL url;
 	private String entryName;
-	
+
 	/**
 	 * Creates an empty Resource with the given href.
 	 * 
-	 * Assumes that if the data is of a text type (html/css/etc) then the encoding will be UTF-8
+	 * Assumes that if the data is of a text type (html/css/etc) then the
+	 * encoding will be UTF-8
 	 * 
-	 * @param href The location of the resource within the epub. Example: "chapter1.html".
+	 * @param href
+	 *            The location of the resource within the epub. Example:
+	 *            "chapter1.html".
 	 */
 	public Resource(String href) {
 		this(null, new byte[0], href, MediatypeService.determineMediaType(href));
 	}
-	
+
 	/**
-	 * Creates a Resource with the given data and MediaType.
-	 * The href will be automatically generated.
+	 * Creates a Resource with the given data and MediaType. The href will be
+	 * automatically generated.
 	 * 
-	 * Assumes that if the data is of a text type (html/css/etc) then the encoding will be UTF-8
+	 * Assumes that if the data is of a text type (html/css/etc) then the
+	 * encoding will be UTF-8
 	 * 
-	 * @param data The Resource's contents
-	 * @param mediaType The MediaType of the Resource
+	 * @param data
+	 *            The Resource's contents
+	 * @param mediaType
+	 *            The MediaType of the Resource
 	 */
 	public Resource(byte[] data, MediaType mediaType) {
 		this(null, data, null, mediaType);
 	}
-	
+
 	/**
-	 * Creates a resource with the given data at the specified href.
-	 * The MediaType will be determined based on the href extension.
+	 * Creates a resource with the given data at the specified href. The
+	 * MediaType will be determined based on the href extension.
 	 * 
-	 * Assumes that if the data is of a text type (html/css/etc) then the encoding will be UTF-8
+	 * Assumes that if the data is of a text type (html/css/etc) then the
+	 * encoding will be UTF-8
 	 * 
-	 * @see nl.siegmann.epublib.service.MediatypeService.determineMediaType(String)
+	 * @see 
+	 *      nl.siegmann.epublib.service.MediatypeService.determineMediaType(String
+	 *      )
 	 * 
-	 * @param data The Resource's contents
-	 * @param href The location of the resource within the epub. Example: "chapter1.html".
+	 * @param data
+	 *            The Resource's contents
+	 * @param href
+	 *            The location of the resource within the epub. Example:
+	 *            "chapter1.html".
 	 */
 	public Resource(byte[] data, String href) {
-		this(null, data, href, MediatypeService.determineMediaType(href), Constants.ENCODING);
+		this(null, data, href, MediatypeService.determineMediaType(href),
+				Constants.ENCODING);
 	}
-	
+
 	/**
-	 * Creates a resource with the data from the given Reader at the specified href.
-	 * The MediaType will be determined based on the href extension.
-	 * @see nl.siegmann.epublib.service.MediatypeService.determineMediaType(String)
-	 *  
-	 * @param in The Resource's contents
-	 * @param href The location of the resource within the epub. Example: "cover.jpg".
+	 * Creates a resource with the data from the given Reader at the specified
+	 * href. The MediaType will be determined based on the href extension.
+	 * 
+	 * @see 
+	 *      nl.siegmann.epublib.service.MediatypeService.determineMediaType(String
+	 *      )
+	 * 
+	 * @param in
+	 *            The Resource's contents
+	 * @param href
+	 *            The location of the resource within the epub. Example:
+	 *            "cover.jpg".
 	 */
 	public Resource(Reader in, String href) throws IOException {
-		this(null, IOUtil.toByteArray(in, Constants.ENCODING), href, MediatypeService.determineMediaType(href), Constants.ENCODING);
+		this(null, IOUtil.toByteArray(in, Constants.ENCODING), href,
+				MediatypeService.determineMediaType(href), Constants.ENCODING);
 	}
-	
+
 	/**
-	 * Creates a resource with the data from the given InputStream at the specified href.
-	 * The MediaType will be determined based on the href extension.
-	 * @see nl.siegmann.epublib.service.MediatypeService.determineMediaType(String)
+	 * Creates a resource with the data from the given InputStream at the
+	 * specified href. The MediaType will be determined based on the href
+	 * extension.
 	 * 
-	 * Assumes that if the data is of a text type (html/css/etc) then the encoding will be UTF-8
+	 * @see 
+	 *      nl.siegmann.epublib.service.MediatypeService.determineMediaType(String
+	 *      )
 	 * 
-	 * It is recommended to us the
-	 * @see nl.siegmann.epublib.domain.Resource.Resource(Reader, String)
-	 * method for creating textual (html/css/etc) resources to prevent encoding problems.
-	 * Use this method only for binary Resources like images, fonts, etc.
+	 *      Assumes that if the data is of a text type (html/css/etc) then the
+	 *      encoding will be UTF-8
+	 * 
+	 *      It is recommended to us the
+	 * @see nl.siegmann.epublib.domain.Resource.Resource(Reader, String) method
+	 *      for creating textual (html/css/etc) resources to prevent encoding
+	 *      problems. Use this method only for binary Resources like images,
+	 *      fonts, etc.
 	 * 
 	 * 
-	 * @param in The Resource's contents
-	 * @param href The location of the resource within the epub. Example: "cover.jpg".
+	 * @param in
+	 *            The Resource's contents
+	 * @param href
+	 *            The location of the resource within the epub. Example:
+	 *            "cover.jpg".
 	 */
 	public Resource(InputStream in, String href) throws IOException {
-		this(null, IOUtil.toByteArray(in), href, MediatypeService.determineMediaType(href));
+		this(null, IOUtil.toByteArray(in), href, MediatypeService
+				.determineMediaType(href));
 	}
-	
+
 	/**
-	 * Creates a resource with the given id, data, mediatype at the specified href.
-	 * Assumes that if the data is of a text type (html/css/etc) then the encoding will be UTF-8
+	 * Creates a resource with the given id, data, mediatype at the specified
+	 * href. Assumes that if the data is of a text type (html/css/etc) then the
+	 * encoding will be UTF-8
 	 * 
-	 * @param id The id of the Resource. Internal use only. Will be auto-generated if it has a null-value.
-	 * @param data The Resource's contents
-	 * @param href The location of the resource within the epub. Example: "chapter1.html".
-	 * @param mediaType The resources MediaType
+	 * @param id
+	 *            The id of the Resource. Internal use only. Will be
+	 *            auto-generated if it has a null-value.
+	 * @param data
+	 *            The Resource's contents
+	 * @param href
+	 *            The location of the resource within the epub. Example:
+	 *            "chapter1.html".
+	 * @param mediaType
+	 *            The resources MediaType
 	 */
 	public Resource(String id, byte[] data, String href, MediaType mediaType) {
 		this(id, data, href, mediaType, Constants.ENCODING);
 	}
-	
+
 	/**
-	 * Creates a resource with the given id, data, mediatype at the specified href.
-	 * If the data is of a text type (html/css/etc) then it will use the given inputEncoding.
+	 * Creates a resource with the given id, data, mediatype at the specified
+	 * href. If the data is of a text type (html/css/etc) then it will use the
+	 * given inputEncoding.
 	 * 
-	 * @param id The id of the Resource. Internal use only. Will be auto-generated if it has a null-value.
-	 * @param data The Resource's contents
-	 * @param href The location of the resource within the epub. Example: "chapter1.html".
-	 * @param mediaType The resources MediaType
-	 * @param inputEncoding If the data is of a text type (html/css/etc) then it will use the given inputEncoding.
+	 * @param id
+	 *            The id of the Resource. Internal use only. Will be
+	 *            auto-generated if it has a null-value.
+	 * @param data
+	 *            The Resource's contents
+	 * @param href
+	 *            The location of the resource within the epub. Example:
+	 *            "chapter1.html".
+	 * @param mediaType
+	 *            The resources MediaType
+	 * @param inputEncoding
+	 *            If the data is of a text type (html/css/etc) then it will use
+	 *            the given inputEncoding.
 	 */
-	public Resource(String id, byte[] data, String href, MediaType mediaType, String inputEncoding) {
+	public Resource(String id, byte[] data, String href, MediaType mediaType,
+			String inputEncoding) {
 		this.id = id;
 		this.href = href;
 		this.mediaType = mediaType;
 		this.inputEncoding = inputEncoding;
 		this.data = data;
 	}
-	
+
 	public Resource(URL url, String name) {
 		this.id = null;
 		this.url = url;
@@ -157,10 +204,6 @@ public class Resource implements Serializable {
 	 * @throws IOException
 	 */
 	public InputStream getInputStream() throws IOException {
-		if (url != null) {
-			return getInputStreamForZipEntry();
-		}
-		
 		return new ByteArrayInputStream(getData());
 	}
 
@@ -168,18 +211,27 @@ public class Resource implements Serializable {
 	 * The contents of the resource as a byte[]
 	 * 
 	 * @return The contents of the resource
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public byte[] getData() throws IOException {
-		if (url != null) {
-			return IOUtil.toByteArray(getInputStreamForZipEntry());
+		if (data != null) {
+			return data;
 		}
-		
+		InputStream inZipFile = null;
+		if (url != null) {
+			inZipFile = url.openStream();
+			InputStream is = getInputStreamForZipEntry(inZipFile);
+			data = IOUtil.toByteArray(is);
+			EpubReader.closeAnInputStream(inZipFile);
+		}
+
 		return data;
 	}
 
-	private InputStream getInputStreamForZipEntry() throws IOException {
-		ZipInputStream zip = new ZipInputStream(url.openStream());
+	private InputStream getInputStreamForZipEntry(InputStream inZipFile)
+			throws IOException {
+
+		ZipInputStream zip = new ZipInputStream(inZipFile);
 
 		ZipEntry entry;
 		while ((entry = zip.getNextEntry()) != null) {
@@ -187,15 +239,15 @@ public class Resource implements Serializable {
 				return zip;
 			}
 		}
-		
-		zip.close();
-		
+		if(zip!=null) {
+			zip.close();
+		}
 		return null;
 	}
 
 	/**
-	 * Sets the data of the Resource.
-	 * If the data is a of a different type then the original data then make sure to change the MediaType.
+	 * Sets the data of the Resource. If the data is a of a different type then
+	 * the original data then make sure to change the MediaType.
 	 * 
 	 * @param data
 	 */
@@ -204,14 +256,15 @@ public class Resource implements Serializable {
 	}
 
 	/**
-	 * If the title is found by scanning the underlying html document then it is cached here.
+	 * If the title is found by scanning the underlying html document then it is
+	 * cached here.
 	 * 
 	 * @return
 	 */
 	public String getTitle() {
 		return title;
 	}
-	
+
 	/**
 	 * Sets the Resource's id: Make sure it is unique and a valid identifier.
 	 * 
@@ -220,11 +273,13 @@ public class Resource implements Serializable {
 	public void setId(String id) {
 		this.id = id;
 	}
-	
+
 	/**
 	 * The resources Id.
 	 * 
-	 * Must be both unique within all the resources of this book and a valid identifier.
+	 * Must be both unique within all the resources of this book and a valid
+	 * identifier.
+	 * 
 	 * @return
 	 */
 	public String getId() {
@@ -262,15 +317,15 @@ public class Resource implements Serializable {
 	}
 
 	/**
-	 * The character encoding of the resource.
-	 * Is allowed to be null for non-text resources like images.
+	 * The character encoding of the resource. Is allowed to be null for
+	 * non-text resources like images.
 	 * 
 	 * @return
 	 */
 	public String getInputEncoding() {
 		return inputEncoding;
 	}
-	
+
 	/**
 	 * Sets the Resource's input character encoding.
 	 * 
@@ -279,20 +334,22 @@ public class Resource implements Serializable {
 	public void setInputEncoding(String encoding) {
 		this.inputEncoding = encoding;
 	}
-	
+
 	/**
 	 * Gets the contents of the Resource as Reader.
 	 * 
-	 * Does all sorts of smart things (courtesy of apache commons io XMLStreamREader) to handle encodings, byte order markers, etc.
+	 * Does all sorts of smart things (courtesy of apache commons io
+	 * XMLStreamREader) to handle encodings, byte order markers, etc.
 	 * 
 	 * @param resource
 	 * @return
 	 * @throws IOException
 	 */
 	public Reader getReader() throws IOException {
-		return new XmlStreamReader(new ByteArrayInputStream(getData()), inputEncoding);
+		return new XmlStreamReader(new ByteArrayInputStream(getData()),
+				inputEncoding);
 	}
-	
+
 	/**
 	 * Gets the hashCode of the Resource's href.
 	 * 
@@ -300,18 +357,19 @@ public class Resource implements Serializable {
 	public int hashCode() {
 		return href.hashCode();
 	}
-	
+
 	/**
-	 * Checks to see of the given resourceObject is a resource and whether its href is equal to this one.
+	 * Checks to see of the given resourceObject is a resource and whether its
+	 * href is equal to this one.
 	 * 
 	 */
 	public boolean equals(Object resourceObject) {
-		if (! (resourceObject instanceof Resource)) {
+		if (!(resourceObject instanceof Resource)) {
 			return false;
 		}
 		return href.equals(((Resource) resourceObject).getHref());
 	}
-	
+
 	/**
 	 * This resource's mediaType.
 	 * 
@@ -320,7 +378,7 @@ public class Resource implements Serializable {
 	public MediaType getMediaType() {
 		return mediaType;
 	}
-	
+
 	public void setMediaType(MediaType mediaType) {
 		this.mediaType = mediaType;
 	}
@@ -330,11 +388,8 @@ public class Resource implements Serializable {
 	}
 
 	public String toString() {
-		return StringUtil.toString("id", id,
-				"title", title,
-				"encoding", inputEncoding,
-				"mediaType", mediaType,
-				"href", href,
-				"size", (data == null ? 0 : data.length));
+		return StringUtil.toString("id", id, "title", title, "encoding",
+				inputEncoding, "mediaType", mediaType, "href", href, "size",
+				(data == null ? 0 : data.length));
 	}
 }

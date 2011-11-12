@@ -8,7 +8,7 @@
 	<artifactId>epublib-parent</artifactId>
 	<name>epublib-parent</name>
 	<packaging>pom</packaging>
-	<version>3.1.autentia-SNAPSHOT</version>
+	<version>3.1.autentia</version>
 	<description>A java library for reading/writing/manipulating epub files</description>
 	<url>http://www.siegmann.nl/epublib</url>
 	<inceptionYear>2009</inceptionYear>

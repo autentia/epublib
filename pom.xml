@@ -47,6 +47,7 @@
 		<url>http://github.com/psiegman/epublib/issues</url>
 	</issueManagement>
 
+	<!-- Para hacer el deploy en los servidores de Autentia
 	<distributionManagement>
 		<repository>
 			<id>repo</id>
@@ -63,6 +64,25 @@
 		<connection>scm:git:https://psiegman@github.com/psiegman/epublib.git</connection>
 		<developerConnection>scm:git:https://psiegman@github.com/psiegman/epublib.git</developerConnection>
 	</scm>
+	-->
+
+	<scm>
+		<connection>scm:git:git://github.com/autentia/epublib.git</connection>
+		<developerConnection>scm:git:git@github.com:autentia/epublib.git</developerConnection>
+		<url>https://github.com/autentia/epublib</url>
+	</scm>
+	<distributionManagement>
+		<site>
+			<id>autentia-site</id>
+			<name>Autentia Site</name>
+			<url>${autentia.site.distribution}/pdfbox</url>
+		</site>
+		<repository>
+			<id>autentia-repository</id>
+			<name>Autentia Repository</name>
+			<url>${autentia.mvn.distribution}</url>
+		</repository>
+	</distributionManagement>
 
 	<build>
 		<plugins>
